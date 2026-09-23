@@ -27,22 +27,27 @@ Add `?px=0|1|2` to pick the starting pixel size (2, 3 or 4 screen pixels per gam
 | S / ↓ | brake / reverse |
 | A D / ← → | steer |
 | Space | handbrake: drift |
-| Shift | boost |
-| V | cycle cameras (chase, far, driver, bumper) |
+| Shift | nitro (gauge above the speedometer; refills when you let go) |
+| V | cycle cameras (chase, far, bumper) |
 | C | change paint |
 | M | radio on/off |
 | P | pixel size |
 | R | put the car back on the nearest road |
 | H | hide HUD |
 
-Gamepads work too: left stick steers, RT/LT for throttle/brake, A/B for the handbrake, X for boost.
+Gamepads work too: left stick steers, RT/LT for throttle/brake, A/B for the handbrake, X for nitro.
 
 ## Layout
 
-- `src/world.js` builds the city: coast, boulevard and street grid, art deco buildings with lit
-  windows and neon, palms, street lamps, festoon lights, pier, beach, hills, sky and ocean
-  shaders, and collision.
-- `src/car.js` has the convertible's model, arcade drift physics and skid marks.
-- `src/audio.js` synthesizes the engine, wind, tires, surf and a procedural radio with WebAudio.
-- `src/main.js` handles the renderer, the low-res HDR target and retro post pass (tone map,
-  grade, Bayer dither), camera, HUD, minimap and input.
+- `src/layout.js` holds the city plan: coast, boulevard and street grid, block types, terrain height
+  (flat downtown, rolling outer districts) and the cliff border.
+- `src/world.js` builds the scene: sky and ocean shaders, ground heightfield, art deco downtown,
+  hillside villas, palms, street lamps, string lights, pier, beach, the cliffs and the distant
+  landscape. It also handles collision.
+- `src/props.js` adds street life: neon shop signs, lit storefronts and café patios, billboards,
+  parked cars, traffic lights, string lights over streets, a gas station, a motel and the marina
+  with its lighthouse.
+- `src/car.js` has the convertible's model, arcade drift physics, nitro flames and skid marks.
+- `src/audio.js` synthesizes the engine, nitro, wind, tires, surf and a procedural radio with WebAudio.
+- `src/main.js` handles the renderer, the low-res HDR target and retro post pass (tone map, grade,
+  Bayer dither, nitro speed blur), camera, HUD, minimap and input.

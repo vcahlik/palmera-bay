@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { World, SUN_DIR, FOG_DENSITY, coastX, bvdX, nearestRoadPoint, PIER, GX0, GZ0, GS } from './world.js';
+import { World, SUN_DIR, FOG_DENSITY, coastX, bvdX, heightAt, nearestRoadPoint, PIER, GX0, GZ0, GS } from './world.js';
 import { Car, Skids } from './car.js';
 import { AudioSys } from './audio.js';
 
@@ -7,10 +7,12 @@ import { AudioSys } from './audio.js';
 // Input (registered before the scene is built so the title screen always responds)
 // ---------------------------------------------------------------------------
 const keys = new Set();
+const audio = new AudioSys();
 const hud = {
   speed: document.getElementById('speed'), gear: document.getElementById('gear'),
   toast: document.getElementById('toast'), overlay: document.getElementById('overlay'),
   hints: document.getElementById('hints'), map: document.getElementById('map'),
+  nitro: document.getElementById('nitrofill'), nitroBox: document.getElementById('nitro'),
   hudRoot: document.getElementById('hud'),
 };
 let started = false, camMode = 0, hudVisible = true;
@@ -32,7 +34,7 @@ addEventListener('keydown', (e) => {
   keys.add(e.code);
   switch (e.code) {
     case 'KeyC': car.cyclePaint(); toast('NEW PAINT'); break;
-    case 'KeyV': camMode = (camMode + 1) % 4; toast(['CHASE CAM', 'FAR CAM', 'DRIVER CAM', 'BUMPER CAM'][camMode]); break;
+    case 'KeyV': camMode = (camMode + 1) % 3; toast(['CHASE CAM', 'FAR CAM', 'BUMPER CAM'][camMode]); break;
     case 'KeyM': toast(audio.toggleMusic() ? 'RADIO ON' : 'RADIO OFF'); break;
     case 'KeyP': pixelIdx = (pixelIdx + 1) % PIXEL_SIZES.length; resize(); toast(`PIXEL SIZE ${PIXEL_SIZES[pixelIdx]}`); break;
     case 'KeyH': hudVisible = !hudVisible; hud.hudRoot.style.display = hudVisible ? '' : 'none'; break;
@@ -62,10 +64,10 @@ const rt = new THREE.WebGLRenderTarget(4, 4, {
 });
 
 const post = new THREE.ShaderMaterial({
-  uniforms: { tDiffuse: { value: rt.texture }, res: { value: new THREE.Vector2() }, time: { value: 0 } },
+  uniforms: { tDiffuse: { value: rt.texture }, res: { value: new THREE.Vector2() }, time: { value: 0 }, boost: { value: 0 } },
   vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }',
   fragmentShader: /* glsl */`
-    uniform sampler2D tDiffuse; uniform vec2 res; uniform float time; varying vec2 vUv;
+    uniform sampler2D tDiffuse; uniform vec2 res; uniform float time; uniform float boost; varying vec2 vUv;
     float bayer(vec2 p){
       p = mod(p, 4.0);
       int i = int(p.x) + int(p.y) * 4;
@@ -75,6 +77,13 @@ const post = new THREE.ShaderMaterial({
     vec3 aces(vec3 x){ return clamp((x*(2.51*x+0.03))/(x*(2.43*x+0.59)+0.14), 0.0, 1.0); }
     void main(){
       vec3 c = texture2D(tDiffuse, vUv).rgb;
+      if (boost > 0.01) {
+        // radial speed blur toward the edges while the nitro burns
+        vec2 dir = (vUv - 0.5);
+        vec3 acc = c;
+        for (int i = 1; i <= 6; i++) acc += texture2D(tDiffuse, vUv - dir * float(i) * 0.012 * boost).rgb;
+        c = mix(c, acc / 7.0, smoothstep(0.08, 0.45, length(dir)) * boost);
+      }
       // soft glow: sample neighbours of bright pixels (cheap bloom)
       vec2 px = 1.0 / res;
       vec3 b = vec3(0.0);
@@ -127,6 +136,7 @@ scene.add(sun, sun.target);
 // light direction is a bit higher than the visible sun so shadows stay readable
 const LIGHT_DIR = new THREE.Vector3(SUN_DIR.x, 0.2, SUN_DIR.z).normalize();
 
+await Promise.race([document.fonts.load('30px "Press Start 2P"'), new Promise((r) => setTimeout(r, 3000))]).catch(() => {});
 const world = new World(scene);
 
 // environment map for the car paint, captured from the sky shader
@@ -144,7 +154,6 @@ const world = new World(scene);
 
 const car = new Car(scene, world.glowMat);
 const skids = new Skids(scene);
-const audio = new AudioSys();
 
 const START = { x: bvdX(-120) - 5, z: -120, h: 0 };
 car.place(START.x, START.z, START.h);
@@ -214,16 +223,17 @@ let camDir = START.h, shake = 0, introT = 0;
 
 function updateCamera(dt, t) {
   const fwd = new THREE.Vector3(Math.sin(car.h), 0, Math.cos(car.h));
-  const carP = new THREE.Vector3(car.pos.x, 0, car.pos.y);
+  const carY = car.y || 0;
+  const carP = new THREE.Vector3(car.pos.x, carY, car.pos.y);
   const spd = car.speed;
-  let fov = 62 + Math.min(18, spd * 0.28);
+  let fov = 62 + Math.min(18, spd * 0.28) + car.boostVis * 12;
 
   if (!started) {
     // slow orbit on the title screen
     introT += dt;
     const a = introT * 0.12 - 1.2;
-    camera.position.set(carP.x + Math.sin(a) * 9, 2.2, carP.z + Math.cos(a) * 9);
-    camera.lookAt(carP.x, 1.1, carP.z);
+    camera.position.set(carP.x + Math.sin(a) * 9, carY + 2.2, carP.z + Math.cos(a) * 9);
+    camera.lookAt(carP.x, carY + 1.1, carP.z);
     camera.fov = 55;
   } else if (camMode <= 1) {
     // chase: follow the direction of travel a little when sliding
@@ -231,13 +241,14 @@ function updateCamera(dt, t) {
     if (spd > 3) {
       const velAng = Math.atan2(car.vel.x, car.vel.y);
       let d = velAng - car.h; d = Math.atan2(Math.sin(d), Math.cos(d));
-      if (car.vf > 0) target = car.h + d * 0.45;
+      if (car.vf > 0) target = car.h + d * 0.35;
     }
     let dd = target - camDir; dd = Math.atan2(Math.sin(dd), Math.cos(dd));
-    camDir += dd * Math.min(1, dt * 4.5);
+    camDir += dd * Math.min(1, dt * 6);
     const dist = camMode === 0 ? 6.8 + spd * 0.03 : 12 + spd * 0.04;
     const hgt = camMode === 0 ? 2.3 : 4.6;
-    const want = new THREE.Vector3(carP.x - Math.sin(camDir) * dist, hgt, carP.z - Math.cos(camDir) * dist);
+    const want = new THREE.Vector3(carP.x - Math.sin(camDir) * dist, carY + hgt, carP.z - Math.cos(camDir) * dist);
+    want.y = Math.max(want.y, heightAt(want.x, want.z) + 1.2);
     // pull the camera in front of any building between it and the car
     for (let k = 1; k <= 12; k++) {
       const t = k / 12;
@@ -250,14 +261,14 @@ function updateCamera(dt, t) {
       }
     }
     camPos.lerp(want, 1 - Math.exp(-dt * 10));
-    camLook.lerp(carP.clone().addScaledVector(fwd, 3.5).setY(1.2), 1 - Math.exp(-dt * 14));
+    camLook.lerp(carP.clone().addScaledVector(fwd, 3.5).setY(carY + 1.2), 1 - Math.exp(-dt * 14));
     camera.position.copy(camPos);
     camera.lookAt(camLook);
   } else {
-    const local = camMode === 2 ? new THREE.Vector3(0.38, 1.98, -0.62) : new THREE.Vector3(0, 0.85, 2.45);
+    const local = new THREE.Vector3(0, 0.85, 2.45);
     car.body.updateWorldMatrix(true, false);
     camera.position.copy(local.applyMatrix4(car.body.matrixWorld));
-    const look = new THREE.Vector3(0, camMode === 2 ? 1.6 : 0.9, 30).applyMatrix4(car.body.matrixWorld);
+    const look = new THREE.Vector3(0, 0.9, 30).applyMatrix4(car.body.matrixWorld);
     camera.lookAt(look);
     camPos.copy(camera.position); camLook.copy(look);
     fov += 6;
@@ -269,7 +280,11 @@ function updateCamera(dt, t) {
   }
   // subtle road vibration at speed
   camera.position.y += Math.sin(t * 40) * 0.004 * Math.min(1, spd / 40);
-  if (camera.position.y < 0.4) camera.position.y = 0.4;
+  if (car.boostVis > 0.05) {
+    camera.position.x += (Math.random() - 0.5) * 0.05 * car.boostVis;
+    camera.position.y += (Math.random() - 0.5) * 0.05 * car.boostVis;
+  }
+  camera.position.y = Math.max(camera.position.y, heightAt(camera.position.x, camera.position.z) + 0.4);
   camera.fov += (fov - camera.fov) * Math.min(1, dt * 3);
   camera.updateProjectionMatrix();
 }
@@ -310,19 +325,23 @@ function frame() {
   updateCamera(dt, t);
   car.updateGlowVisibility(camera);
 
-  sun.position.set(car.pos.x, 0, car.pos.y).addScaledVector(LIGHT_DIR, 400);
-  sun.target.position.set(car.pos.x, 0, car.pos.y);
+  sun.position.set(car.pos.x, car.y, car.pos.y).addScaledVector(LIGHT_DIR, 400);
+  sun.target.position.set(car.pos.x, car.y, car.pos.y);
 
   world.glowMat.uniforms.uScale.value = rt.height * 0.5 * camera.projectionMatrix.elements[5];
 
   audio.update(dt, {
-    vf: car.vf, speed: car.speed, throttle: inp.throttle, skid: car.skidding,
+    vf: car.vf, speed: car.speed, throttle: car.boosting ? 1 : inp.throttle, skid: car.skidding, boost: car.boostVis,
     coastDist: Math.max(0, car.pos.x - coastX(car.pos.y)),
   });
 
   const kmh = Math.round(Math.abs(car.vf) * 3.6);
   hud.speed.textContent = String(kmh).padStart(3, '0');
   hud.gear.textContent = car.vf < -0.5 ? 'R' : kmh < 1 ? 'N' : String(audio.gear || 1);
+  hud.nitro.style.width = (car.nitro * 100).toFixed(1) + '%';
+  hud.nitroBox.classList.toggle('burn', car.boosting);
+  hud.nitroBox.classList.toggle('empty', car.nitroLock);
+  post.uniforms.boost.value = car.boostVis;
   drawMap();
 
   renderer.setRenderTarget(rt);

@@ -20,6 +20,12 @@
     #speedo .unit { font-size: 11px; opacity: .85; margin-top: 8px; }
     #gearbox { position: absolute; right: 28px; bottom: 108px; font-size: 12px; opacity: .9; text-shadow: 2px 2px 0 var(--ink); }
     #gear { color: var(--orange); font-size: 18px; margin-left: 6px; }
+    #nitro { position: absolute; right: 28px; bottom: 136px; display: flex; align-items: center; gap: 10px; font-size: 10px; text-shadow: 2px 2px 0 var(--ink); }
+    #nitrobar { width: 150px; height: 12px; background: rgba(26, 16, 48, .75); box-shadow: 0 0 0 2px var(--ink), 0 0 0 4px #35e8ff; }
+    #nitrofill { height: 100%; width: 100%; background: linear-gradient(90deg, #35e8ff, #b45cff 60%, #ff4f8b); }
+    #nitro.burn #nitrobar { box-shadow: 0 0 0 2px var(--ink), 0 0 0 4px #ff4f8b, 0 0 18px #ff4f8b; }
+    #nitro.burn span { color: #ff4f8b; }
+    #nitro.empty #nitrofill { background: #5a4a70; }
     #map { position: absolute; right: 22px; top: 22px; width: 170px; height: 170px; border-radius: 50%;
       box-shadow: 0 0 0 3px var(--ink), 0 0 0 5px var(--pink), 0 0 24px rgba(255, 79, 139, .45); image-rendering: pixelated; opacity: .92; }
     #brand { position: absolute; left: 24px; top: 22px; font-size: 12px; line-height: 1.8; text-shadow: 2px 2px 0 var(--ink); opacity: .9; }
@@ -59,10 +65,11 @@
     <div id="brand"><b>PALMERA BAY</b><br />sunset drive</div>
     <canvas id="map" width="170" height="170"></canvas>
     <div id="gearbox">GEAR<span id="gear">N</span></div>
+    <div id="nitro"><span>NOS</span><div id="nitrobar"><div id="nitrofill"></div></div></div>
     <div id="speedo"><div id="speed">000</div><div class="unit">KM/H</div></div>
     <div id="hints">
       <span>WASD/ARROWS</span> drive &nbsp; <span>SPACE</span> drift<br />
-      <span>SHIFT</span> boost &nbsp; <span>V</span> camera &nbsp; <span>C</span> paint<br />
+      <span>SHIFT</span> nitro &nbsp; <span>V</span> camera &nbsp; <span>C</span> paint<br />
       <span>M</span> radio &nbsp; <span>P</span> pixels &nbsp; <span>R</span> reset &nbsp; <span>H</span> hud
     </div>
     <div id="toast"></div>

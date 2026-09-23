@@ -48,6 +48,14 @@ export class AudioSys {
     const n1 = noise(); n1.connect(sf).connect(this.sGain); n1.connect(sf2).connect(this.sGain);
     this.sGain.connect(this.master);
 
+    // nitro roar
+    this.bGain = ctx.createGain(); this.bGain.gain.value = 0;
+    const bf = ctx.createBiquadFilter(); bf.type = 'bandpass'; bf.frequency.value = 650; bf.Q.value = 0.8;
+    const bo = ctx.createOscillator(); bo.type = 'sawtooth'; bo.frequency.value = 55;
+    const bog = ctx.createGain(); bog.gain.value = 0.25;
+    noise().connect(bf).connect(this.bGain); bo.connect(bog).connect(this.bGain); bo.start();
+    this.bGain.connect(this.master);
+
     // ocean surf
     this.oGain = ctx.createGain(); this.oGain.gain.value = 0;
     const of = ctx.createBiquadFilter(); of.type = 'lowpass'; of.frequency.value = 600;
@@ -92,7 +100,8 @@ export class AudioSys {
     const lo = GEARS[gear - 1] * 0.75, hi = GEARS[gear];
     const rpm = Math.min(1.08, 0.22 + 0.78 * Math.max(0, (v - lo) / (hi - lo)));
     this.gear = gear; this.rpm = rpm;
-    const f = 42 + rpm * 125 + (s.throttle > 0 && v < 1 ? 15 : 0);
+    const f = (42 + rpm * 125 + (s.throttle > 0 && v < 1 ? 15 : 0)) * (1 + (s.boost || 0) * 0.12);
+    this.bGain.gain.setTargetAtTime((s.boost || 0) * 0.3, t, 0.08);
     for (const e of this.eOsc) e.o.frequency.setTargetAtTime(f * e.mul, t, 0.04);
     this.eFilter.frequency.setTargetAtTime(350 + rpm * 900 + s.throttle * 900, t, 0.05);
     this.eGain.gain.setTargetAtTime(0.11 + s.throttle * 0.13 + rpm * 0.05, t, 0.08);
