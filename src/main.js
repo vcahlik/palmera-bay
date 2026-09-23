@@ -4,6 +4,49 @@ import { Car, Skids } from './car.js';
 import { AudioSys } from './audio.js';
 
 // ---------------------------------------------------------------------------
+// Input (registered before the scene is built so the title screen always responds)
+// ---------------------------------------------------------------------------
+const keys = new Set();
+const hud = {
+  speed: document.getElementById('speed'), gear: document.getElementById('gear'),
+  toast: document.getElementById('toast'), overlay: document.getElementById('overlay'),
+  hints: document.getElementById('hints'), map: document.getElementById('map'),
+  hudRoot: document.getElementById('hud'),
+};
+let started = false, camMode = 0, hudVisible = true;
+function toast(msg) {
+  hud.toast.textContent = msg; hud.toast.classList.add('show');
+  clearTimeout(toast.t); toast.t = setTimeout(() => hud.toast.classList.remove('show'), 1400);
+}
+function begin() {
+  if (started) return;
+  started = true;
+  hud.overlay.classList.add('hidden');
+  try { audio.start(); } catch (err) { console.warn('audio unavailable', err); }
+  setTimeout(() => hud.hints.classList.add('fade'), 9000);
+}
+addEventListener('keydown', (e) => {
+  if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(e.code)) e.preventDefault();
+  if (!started) { begin(); return; }
+  if (e.repeat) return;
+  keys.add(e.code);
+  switch (e.code) {
+    case 'KeyC': car.cyclePaint(); toast('NEW PAINT'); break;
+    case 'KeyV': camMode = (camMode + 1) % 4; toast(['CHASE CAM', 'FAR CAM', 'DRIVER CAM', 'BUMPER CAM'][camMode]); break;
+    case 'KeyM': toast(audio.toggleMusic() ? 'RADIO ON' : 'RADIO OFF'); break;
+    case 'KeyP': pixelIdx = (pixelIdx + 1) % PIXEL_SIZES.length; resize(); toast(`PIXEL SIZE ${PIXEL_SIZES[pixelIdx]}`); break;
+    case 'KeyH': hudVisible = !hudVisible; hud.hudRoot.style.display = hudVisible ? '' : 'none'; break;
+    case 'KeyR': {
+      const p = nearestRoadPoint(car.pos.x, car.pos.y);
+      car.place(p.x, p.z, p.h); toast('BACK ON THE ROAD'); break;
+    }
+  }
+});
+addEventListener('keyup', (e) => keys.delete(e.code));
+addEventListener('blur', () => keys.clear());
+hud.overlay.addEventListener('click', begin);
+
+// ---------------------------------------------------------------------------
 // Renderer + low-res HDR target + retro post pass
 // ---------------------------------------------------------------------------
 const canvas = document.getElementById('c');
@@ -106,49 +149,6 @@ const audio = new AudioSys();
 const START = { x: bvdX(-120) - 5, z: -120, h: 0 };
 car.place(START.x, START.z, START.h);
 
-// ---------------------------------------------------------------------------
-// Input
-// ---------------------------------------------------------------------------
-const keys = new Set();
-const hud = {
-  speed: document.getElementById('speed'), gear: document.getElementById('gear'),
-  toast: document.getElementById('toast'), overlay: document.getElementById('overlay'),
-  hints: document.getElementById('hints'), map: document.getElementById('map'),
-  hudRoot: document.getElementById('hud'),
-};
-let started = false, camMode = 0, hudVisible = true;
-function toast(msg) {
-  hud.toast.textContent = msg; hud.toast.classList.add('show');
-  clearTimeout(toast.t); toast.t = setTimeout(() => hud.toast.classList.remove('show'), 1400);
-}
-function begin() {
-  if (started) return;
-  started = true;
-  hud.overlay.classList.add('hidden');
-  audio.start();
-  setTimeout(() => hud.hints.classList.add('fade'), 9000);
-}
-addEventListener('keydown', (e) => {
-  if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(e.code)) e.preventDefault();
-  if (!started) { begin(); return; }
-  if (e.repeat) return;
-  keys.add(e.code);
-  switch (e.code) {
-    case 'KeyC': car.cyclePaint(); toast('NEW PAINT'); break;
-    case 'KeyV': camMode = (camMode + 1) % 4; toast(['CHASE CAM', 'FAR CAM', 'DRIVER CAM', 'BUMPER CAM'][camMode]); break;
-    case 'KeyM': toast(audio.toggleMusic() ? 'RADIO ON' : 'RADIO OFF'); break;
-    case 'KeyP': pixelIdx = (pixelIdx + 1) % PIXEL_SIZES.length; resize(); toast(`PIXEL SIZE ${PIXEL_SIZES[pixelIdx]}`); break;
-    case 'KeyH': hudVisible = !hudVisible; hud.hudRoot.style.display = hudVisible ? '' : 'none'; break;
-    case 'KeyR': {
-      const p = nearestRoadPoint(car.pos.x, car.pos.y);
-      car.place(p.x, p.z, p.h); toast('BACK ON THE ROAD'); break;
-    }
-  }
-});
-addEventListener('keyup', (e) => keys.delete(e.code));
-addEventListener('blur', () => keys.clear());
-hud.overlay.addEventListener('click', begin);
-
 function readInput() {
   const k = (...c) => c.some((x) => keys.has(x));
   const inp = {
@@ -158,7 +158,8 @@ function readInput() {
     handbrake: k('Space'),
     boost: k('ShiftLeft', 'ShiftRight'),
   };
-  const gp = navigator.getGamepads ? [...navigator.getGamepads()].find((g) => g) : null;
+  let gp = null;
+  try { gp = navigator.getGamepads ? [...navigator.getGamepads()].find((g) => g) : null; } catch { /* insecure context */ }
   if (gp) {
     const ax = gp.axes[0] || 0;
     if (Math.abs(ax) > 0.12) inp.steer = -ax;
@@ -335,6 +336,7 @@ function frame() {
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
+window.__ready = true;
 
 // debug hooks for automated screenshots
 window.__game = { car, camera, world, begin, keys, setCam: (m) => { camMode = m; } };

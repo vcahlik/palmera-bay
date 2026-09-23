@@ -4,11 +4,13 @@ A small "vibe driving" browser game. Cruise a tropical coastal city at golden ho
 fast convertible. There are no opponents and no goals, just free roam.
 
 Everything is procedural: the city layout, window and ground textures, palms, sky, ocean,
-engine sound and the synthwave radio. The only dependency is Three.js, loaded from a CDN.
+engine sound and the synthwave radio. The only dependency is Three.js r169, vendored in
+`vendor/three/`, so it runs offline (only the pixel font comes from Google Fonts).
 
 ## Run
 
-ES modules need to be served over HTTP:
+ES modules need to be served over HTTP. Double-clicking `index.html` opens it as `file://`,
+where the browser blocks the game script (the page shows a message saying so):
 
 ```sh
 python3 -m http.server 8000

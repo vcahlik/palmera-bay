@@ -4,6 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Palmera Bay</title>
+  <link rel="icon" href="data:," />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
   <style>
@@ -39,12 +40,16 @@
     #sub { font-size: clamp(10px, 1.6vw, 15px); letter-spacing: 6px; color: #7ae8ff; text-shadow: 3px 3px 0 var(--ink); }
     #press { font-size: 12px; animation: blink 1.1s steps(2) infinite; text-shadow: 2px 2px 0 var(--ink); margin-top: 20px; }
     @keyframes blink { 50% { opacity: 0; } }
+    #error { position: fixed; left: 50%; bottom: 8%; transform: translateX(-50%); max-width: min(760px, 92vw); display: none;
+      padding: 16px 18px; background: rgba(20, 10, 30, .92); border: 2px solid var(--pink); font-size: 10px; line-height: 1.9;
+      color: var(--cream); white-space: pre-wrap; word-break: break-word; z-index: 10; }
+    #error.show { display: block; }
     @media (max-width: 700px) { #map { width: 110px; height: 110px; } #speed { font-size: 30px; } #hints { display: none; } }
   </style>
   <script type="importmap">
     { "imports": {
-        "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js",
-        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"
+        "three": "./vendor/three/three.module.js",
+        "three/addons/": "./vendor/three/addons/"
     } }
   </script>
 </head>
@@ -67,6 +72,31 @@
     <div id="sub">A SUNSET DRIVE</div>
     <div id="press">PRESS ANY KEY</div>
   </div>
+  <div id="error"></div>
+  <script>
+    // Plain script so it still runs if the game module fails to load.
+    (function () {
+      var box = document.getElementById('error');
+      function show(msg) {
+        box.textContent = 'The game failed to start:\n' + msg;
+        box.classList.add('show');
+        document.getElementById('press').textContent = 'COULD NOT START';
+      }
+      window.__showError = show;
+      if (location.protocol === 'file:') {
+        show('This page was opened as a local file, and browsers block ES modules there.\n' +
+          'Serve the folder instead:  python3 -m http.server 8000  then open http://localhost:8000');
+        return;
+      }
+      window.addEventListener('error', function (e) {
+        if (!window.__ready) show((e.error && e.error.stack) || e.message || ('could not load ' + (e.target && (e.target.src || e.target.href))));
+      }, true);
+      window.addEventListener('unhandledrejection', function (e) { if (!window.__ready) show(String(e.reason && e.reason.stack || e.reason)); });
+      setTimeout(function () {
+        if (!window.__ready && !box.classList.contains('show')) show('Still not running after 20 s: the scripts did not load or the scene setup stalled. Check the browser console (F12).');
+      }, 20000);
+    })();
+  </script>
   <script type="module" src="src/main.js"></script>
 </body>
 </html>
