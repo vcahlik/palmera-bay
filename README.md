@@ -43,6 +43,11 @@ source changes.
 
 Gamepads work too: left stick steers, RT/LT for throttle/brake, A/B for the handbrake, X for nitro.
 
+On phones and tablets, on-screen controls appear: ◀ ▶ to steer, ▲ ▼ for gas and brake, plus
+NOS and DRIFT buttons. The ☰ menu holds camera, paint, radio, pixels, reset, HUD and fullscreen.
+You can slide a thumb between buttons without lifting it. Desktop never shows these; add
+`?touch=1` to the URL to try them there.
+
 ## Layout
 
 - `src/layout.js` holds the city plan: coast, boulevard and street grid, block types, terrain height

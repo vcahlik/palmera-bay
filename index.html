@@ -2,7 +2,9 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
   <title>Palmera Bay</title>
   <link rel="icon" href="data:," />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -51,6 +53,52 @@
       color: var(--cream); white-space: pre-wrap; word-break: break-word; z-index: 10; }
     #error.show { display: block; }
     @media (max-width: 700px) { #map { width: 110px; height: 110px; } #speed { font-size: 30px; } #hints { display: none; } }
+
+    /* ---- touch devices only (body.touch is set by src/touch.js) ---- */
+    #touchpad, #menubtn, #menu, #rotate { display: none; }
+    body.touch { touch-action: none; -webkit-touch-callout: none; -webkit-user-select: none; }
+    body.touch #brand, body.touch #hints, body.touch #gearbox { display: none; }
+    body.touch #map { width: 92px; height: 92px; top: calc(12px + env(safe-area-inset-top)); right: calc(12px + env(safe-area-inset-right)); }
+    body.touch #speedo { top: calc(8px + env(safe-area-inset-top)); bottom: auto; right: auto; left: 50%; transform: translateX(-50%); text-align: center; }
+    body.touch #speed { font-size: 24px; }
+    body.touch #speedo .unit { font-size: 8px; margin-top: 4px; }
+    body.touch #nitro { top: calc(56px + env(safe-area-inset-top)); bottom: auto; right: auto; left: 50%; transform: translateX(-50%); font-size: 8px; gap: 6px; }
+    body.touch #nitrobar { width: 96px; height: 7px; }
+    body.touch #toast { top: 30%; font-size: 11px; }
+    body.touch:not(.playing) #hud { display: none; }
+    body.touch.playing #touchpad { display: block; }
+    body.touch.playing #menubtn { display: flex; }
+    #touchpad { position: fixed; inset: 0; pointer-events: none; z-index: 5; }
+    .tbtn { position: absolute; pointer-events: auto; width: 74px; height: 74px; border-radius: 16px; display: flex; align-items: center; justify-content: center;
+      background: rgba(26, 16, 48, .42); box-shadow: inset 0 0 0 2px rgba(255, 243, 220, .35); color: var(--cream); font-size: 9px;
+      touch-action: none; -webkit-tap-highlight-color: transparent; transition: background .06s; }
+    .tbtn svg { width: 34px; height: 34px; fill: currentColor; filter: drop-shadow(2px 2px 0 var(--ink)); }
+    .tbtn span { text-shadow: 2px 2px 0 var(--ink); }
+    .tbtn.on { background: rgba(255, 79, 139, .5); box-shadow: inset 0 0 0 2px var(--pink), 0 0 18px rgba(255, 79, 139, .6); }
+    #t-left, #t-right, #t-gas, #t-brake { bottom: calc(18px + env(safe-area-inset-bottom)); }
+    #t-left { left: calc(18px + env(safe-area-inset-left)); }
+    #t-right { left: calc(104px + env(safe-area-inset-left)); }
+    #t-gas { right: calc(18px + env(safe-area-inset-right)); height: 86px; }
+    #t-brake { right: calc(104px + env(safe-area-inset-right)); }
+    #t-nos, #t-drift { width: 74px; height: 50px; bottom: calc(118px + env(safe-area-inset-bottom)); }
+    #t-nos { right: calc(18px + env(safe-area-inset-right)); color: #7ae8ff; box-shadow: inset 0 0 0 2px rgba(53, 232, 255, .6);
+      background: linear-gradient(to top, rgba(53, 232, 255, .35) calc(var(--nos, 1) * 100%), rgba(26, 16, 48, .42) 0); }
+    #t-drift { right: calc(104px + env(safe-area-inset-right)); }
+    #menubtn { position: fixed; z-index: 6; top: calc(12px + env(safe-area-inset-top)); left: calc(12px + env(safe-area-inset-left)); width: 44px; height: 44px;
+      border-radius: 12px; background: rgba(26, 16, 48, .5); box-shadow: inset 0 0 0 2px rgba(255, 243, 220, .35); flex-direction: column; align-items: center; justify-content: center; gap: 5px; }
+    #menubtn i { display: block; width: 20px; height: 3px; background: var(--cream); box-shadow: 1px 1px 0 var(--ink); }
+    #menu.open { display: flex; position: fixed; inset: 0; z-index: 7; align-items: center; justify-content: center; background: rgba(20, 14, 42, .55); }
+    #menu .panel { padding: 20px; background: rgba(26, 16, 48, .92); box-shadow: 0 0 0 3px var(--ink), 0 0 0 5px var(--pink), 0 0 30px rgba(255, 79, 139, .4); max-width: 92vw; }
+    #menu .mtitle { font-size: 12px; color: var(--pink); text-align: center; margin-bottom: 16px; text-shadow: 2px 2px 0 var(--ink); }
+    #menu .grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+    #menu button { font: 9px 'Press Start 2P', monospace; color: var(--cream); background: rgba(255, 243, 220, .08); border: 2px solid rgba(255, 243, 220, .35);
+      padding: 14px 8px; white-space: nowrap; -webkit-tap-highlight-color: transparent; }
+    #menu button:active { background: rgba(255, 79, 139, .45); border-color: var(--pink); }
+    #rotate { font-size: 9px; color: #7ae8ff; text-shadow: 2px 2px 0 var(--ink); text-align: center; line-height: 1.8; }
+    @media (orientation: portrait) {
+      body.touch #rotate { display: block; }
+      #menu .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
   </style>
 </head>
 <body>
@@ -72,6 +120,7 @@
     <div id="title">PALMERA<br />BAY</div>
     <div id="sub">A SUNSET DRIVE</div>
     <div id="press">PRESS ANY KEY</div>
+    <div id="rotate">ROTATE YOUR PHONE<br />FOR THE BEST VIEW</div>
   </div>
   <div id="error"></div>
   <script>

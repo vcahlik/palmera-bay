@@ -626,9 +626,19 @@ export class Props {
     lantern.position.set(lx, 17.4, lz);
     W.scene.add(lantern);
     W.glows.push({ x: lx, y: 17.4, z: lz, s: 9, c: C('#ffe0a0').multiplyScalar(1.6) });
-    const beamG = new THREE.ConeGeometry(7, 90, 16, 1, true); beamG.rotateZ(Math.PI / 2); beamG.translate(-45, 0, 0);
+    // beam: apex at the lantern, widening outward, fading with distance
+    const beamG = new THREE.ConeGeometry(7, 90, 16, 8, true); beamG.rotateZ(-Math.PI / 2); beamG.translate(-45, 0, 0);
+    {
+      const bp = beamG.attributes.position, bc = new Float32Array(bp.count * 3);
+      for (let i = 0; i < bp.count; i++) {
+        const f = Math.pow(1 - Math.min(1, -bp.getX(i) / 90), 1.6);
+        bc.set([f, f, f], i * 3);
+      }
+      beamG.setAttribute('color', new THREE.BufferAttribute(bc, 3));
+    }
     const beam = new THREE.Mesh(beamG, new THREE.MeshBasicMaterial({
-      color: new THREE.Color(0.5, 0.42, 0.28), blending: THREE.AdditiveBlending, transparent: true, depthWrite: false, side: THREE.DoubleSide, fog: false,
+      color: new THREE.Color(0.7, 0.58, 0.38), vertexColors: true,
+      blending: THREE.AdditiveBlending, transparent: true, depthWrite: false, side: THREE.DoubleSide, fog: false,
     }));
     const pivot = new THREE.Group(); pivot.position.set(lx, 17.4, lz); pivot.add(beam);
     W.scene.add(pivot);

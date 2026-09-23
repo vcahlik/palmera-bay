@@ -2,11 +2,14 @@ import * as THREE from 'three';
 import { World, SUN_DIR, FOG_DENSITY, coastX, bvdX, heightAt, nearestRoadPoint, PIER, GX0, GZ0, GS } from './world.js';
 import { Car, Skids } from './car.js';
 import { AudioSys } from './audio.js';
+import { isTouchDevice, setupTouch } from './touch.js';
 
 // ---------------------------------------------------------------------------
 // Input (registered before the scene is built so the title screen always responds)
 // ---------------------------------------------------------------------------
 const keys = new Set();
+const touchKeys = new Set();
+const TOUCH = isTouchDevice();
 const audio = new AudioSys();
 const hud = {
   speed: document.getElementById('speed'), gear: document.getElementById('gear'),
@@ -24,6 +27,7 @@ function begin() {
   if (started) return;
   started = true;
   hud.overlay.classList.add('hidden');
+  document.body.classList.add('playing');
   try { audio.start(); } catch (err) { console.warn('audio unavailable', err); }
   setTimeout(() => hud.hints.classList.add('fade'), 9000);
 }
@@ -32,7 +36,11 @@ addEventListener('keydown', (e) => {
   if (!started) { begin(); return; }
   if (e.repeat) return;
   keys.add(e.code);
-  switch (e.code) {
+  action(e.code);
+});
+// shortcuts shared by the keyboard and the touch menu
+function action(code) {
+  switch (code) {
     case 'KeyC': car.cyclePaint(); toast('NEW PAINT'); break;
     case 'KeyV': camMode = (camMode + 1) % 3; toast(['CHASE CAM', 'FAR CAM', 'BUMPER CAM'][camMode]); break;
     case 'KeyM': toast(audio.toggleMusic() ? 'RADIO ON' : 'RADIO OFF'); break;
@@ -43,10 +51,11 @@ addEventListener('keydown', (e) => {
       car.place(p.x, p.z, p.h); toast('BACK ON THE ROAD'); break;
     }
   }
-});
+}
 addEventListener('keyup', (e) => keys.delete(e.code));
 addEventListener('blur', () => keys.clear());
 hud.overlay.addEventListener('click', begin);
+if (TOUCH) setupTouch({ touchKeys, action });
 
 // ---------------------------------------------------------------------------
 // Renderer + low-res HDR target + retro post pass
@@ -58,7 +67,7 @@ renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFShadowMap;
 
 const PIXEL_SIZES = [2, 3, 4];
-let pixelIdx = Number(new URLSearchParams(location.search).get('px') ?? 1);
+let pixelIdx = Number(new URLSearchParams(location.search).get('px') ?? (TOUCH ? 0 : 1)); // phones have few CSS pixels
 const rt = new THREE.WebGLRenderTarget(4, 4, {
   type: THREE.HalfFloatType, minFilter: THREE.NearestFilter, magFilter: THREE.NearestFilter, depthBuffer: true,
 });
@@ -127,7 +136,7 @@ const hemi = new THREE.HemisphereLight('#9a78c8', '#6a3e3a', 1.5);
 scene.add(hemi);
 const sun = new THREE.DirectionalLight('#ffab6a', 3.4);
 sun.castShadow = true;
-sun.shadow.mapSize.set(2048, 2048);
+sun.shadow.mapSize.setScalar(TOUCH ? 1024 : 2048);
 const sc = sun.shadow.camera;
 sc.left = -110; sc.right = 110; sc.top = 110; sc.bottom = -110; sc.near = 10; sc.far = 900;
 sun.shadow.bias = -0.0006;
@@ -159,7 +168,7 @@ const START = { x: bvdX(-120) - 5, z: -120, h: 0 };
 car.place(START.x, START.z, START.h);
 
 function readInput() {
-  const k = (...c) => c.some((x) => keys.has(x));
+  const k = (...c) => c.some((x) => keys.has(x) || touchKeys.has(x));
   const inp = {
     throttle: k('KeyW', 'ArrowUp') ? 1 : 0,
     brake: k('KeyS', 'ArrowDown') ? 1 : 0,
@@ -309,6 +318,7 @@ resize();
 // Loop
 // ---------------------------------------------------------------------------
 const clock = new THREE.Clock();
+let nosBtn = null;
 let fpsAcc = 0, fpsN = 0;
 function frame() {
   const dt = Math.min(clock.getDelta(), 1 / 20);
@@ -341,6 +351,10 @@ function frame() {
   hud.nitro.style.width = (car.nitro * 100).toFixed(1) + '%';
   hud.nitroBox.classList.toggle('burn', car.boosting);
   hud.nitroBox.classList.toggle('empty', car.nitroLock);
+  if (TOUCH) {
+    nosBtn ??= document.getElementById('t-nos');
+    nosBtn.style.setProperty('--nos', car.nitroLock ? 0 : car.nitro.toFixed(3));
+  }
   post.uniforms.boost.value = car.boostVis;
   drawMap();
 
