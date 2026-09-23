@@ -1,4 +1,14 @@
-# Palmera Bay: a sunset drive
+# Palmera Bay: a game vibe-coded with Claude Opus 5.5
+
+I vibe-coded this game almost effortlessly using Claude Code with Claude Opus 5.5 (medium effort). This was my original prompt:
+
+*Build a "vibe driving" javascript browser game - I drive around a tropical coastal city, beautiful sunset atmosphere, street lights/lamps hanging around. Map can be small - focus on quality. No oponents, just free roam. Car must be fast convertible. Graphics should be nice, slightly retro/pixelated.*
+
+This first attempt (which can be found in the initial commit) ran in auto mode for about 30 minutes and produced a result similar to the final game. After that, I ran a few more prompts, mostly for improving the map or gameplay. The biggest bug was broken driver-view camera. Overall, I took about 2 hours to produce the complete thing.
+
+[The game can be played in-browser here.](https://cahlik.net/palmera-bay/)
+
+## Overview
 
 A small "vibe driving" browser game. Cruise a tropical coastal city at golden hour in a
 fast convertible. There are no opponents and no goals, just free roam.
