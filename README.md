@@ -4,20 +4,26 @@ A small "vibe driving" browser game. Cruise a tropical coastal city at golden ho
 fast convertible. There are no opponents and no goals, just free roam.
 
 Everything is procedural: the city layout, window and ground textures, palms, sky, ocean,
-engine sound and the synthwave radio. The only dependency is Three.js r169, vendored in
-`vendor/three/`, so it runs offline (only the pixel font comes from Google Fonts).
+engine sound and the synthwave radio. Three.js is bundled into `dist/game.js`; only the pixel
+font comes from Google Fonts (without internet it falls back to a system font).
 
-## Run
+## Play
 
-ES modules need to be served over HTTP. Double-clicking `index.html` opens it as `file://`,
-where the browser blocks the game script (the page shows a message saying so):
+Open `index.html` in a browser, straight from disk. No server is needed. To put it online, copy
+`index.html` and the `dist/` folder to any static host (GitHub Pages, Netlify, a bucket...).
+
+## Develop
+
+The source lives in `src/` as ES modules and is bundled with esbuild:
 
 ```sh
-python3 -m http.server 8000
-# open http://localhost:8000
+npm install
+npm run build   # one-off build to dist/game.js
+npm run watch   # rebuild on every save, then just reload the page
 ```
 
-Add `?px=0|1|2` to pick the starting pixel size (2, 3 or 4 screen pixels per game pixel).
+`dist/` is committed so the game stays playable without building. Rebuild before committing
+source changes.
 
 ## Controls
 

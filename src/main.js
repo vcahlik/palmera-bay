@@ -136,7 +136,7 @@ scene.add(sun, sun.target);
 // light direction is a bit higher than the visible sun so shadows stay readable
 const LIGHT_DIR = new THREE.Vector3(SUN_DIR.x, 0.2, SUN_DIR.z).normalize();
 
-await Promise.race([document.fonts.load('30px "Press Start 2P"'), new Promise((r) => setTimeout(r, 3000))]).catch(() => {});
+// index.html waits (briefly) for the pixel font before loading this bundle; the signs are drawn with it.
 const world = new World(scene);
 
 // environment map for the car paint, captured from the sky shader

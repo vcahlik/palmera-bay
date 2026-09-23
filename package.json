@@ -1,0 +1,13 @@
+{
+  "name": "palmera-bay",
+  "private": true,
+  "description": "Vibe driving browser game: a sunset cruise through a tropical coastal city.",
+  "scripts": {
+    "build": "esbuild src/main.js --bundle --format=iife --target=es2020 --minify --sourcemap --outfile=dist/game.js",
+    "watch": "npm run build -- --watch"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0",
+    "three": "0.169.0"
+  }
+}

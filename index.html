@@ -52,12 +52,6 @@
     #error.show { display: block; }
     @media (max-width: 700px) { #map { width: 110px; height: 110px; } #speed { font-size: 30px; } #hints { display: none; } }
   </style>
-  <script type="importmap">
-    { "imports": {
-        "three": "./vendor/three/three.module.js",
-        "three/addons/": "./vendor/three/addons/"
-    } }
-  </script>
 </head>
 <body>
   <canvas id="c"></canvas>
@@ -81,7 +75,6 @@
   </div>
   <div id="error"></div>
   <script>
-    // Plain script so it still runs if the game module fails to load.
     (function () {
       var box = document.getElementById('error');
       function show(msg) {
@@ -89,21 +82,21 @@
         box.classList.add('show');
         document.getElementById('press').textContent = 'COULD NOT START';
       }
-      window.__showError = show;
-      if (location.protocol === 'file:') {
-        show('This page was opened as a local file, and browsers block ES modules there.\n' +
-          'Serve the folder instead:  python3 -m http.server 8000  then open http://localhost:8000');
-        return;
-      }
       window.addEventListener('error', function (e) {
         if (!window.__ready) show((e.error && e.error.stack) || e.message || ('could not load ' + (e.target && (e.target.src || e.target.href))));
       }, true);
-      window.addEventListener('unhandledrejection', function (e) { if (!window.__ready) show(String(e.reason && e.reason.stack || e.reason)); });
       setTimeout(function () {
-        if (!window.__ready && !box.classList.contains('show')) show('Still not running after 20 s: the scripts did not load or the scene setup stalled. Check the browser console (F12).');
+        if (!window.__ready && !box.classList.contains('show')) show('Still not running after 20 s. Check the browser console (F12).');
       }, 20000);
+      // Neon signs are drawn with the pixel font, so give it a moment to arrive before starting.
+      var fontReady = document.fonts ? document.fonts.load('30px "Press Start 2P"') : Promise.resolve();
+      var timeout = new Promise(function (r) { setTimeout(r, 3000); });
+      Promise.race([fontReady, timeout]).catch(function () {}).then(function () {
+        var s = document.createElement('script');
+        s.src = 'dist/game.js';
+        document.body.appendChild(s);
+      });
     })();
   </script>
-  <script type="module" src="src/main.js"></script>
 </body>
 </html>
